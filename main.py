@@ -1,2 +1,7 @@
-print("Market Intelligence Dashboard — Day 1 online.")
-print("First ticker we'll wire up: NVDA.")
+import yfinance as yf
+
+nvda = yf.Ticker("NVDA")
+
+data = nvda.history(period="5d")
+
+print(data)
