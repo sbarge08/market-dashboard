@@ -1,0 +1,12 @@
+[theme]
+primaryColor="#B08D57"
+backgroundColor="#1C1B19"
+secondaryBackgroundColor="#242321"
+textColor="#F5F5F5"
+font="sans serif"
+
+[client]
+toolbarMode="minimal"
+import streamlit as st
+
+st.image("assets/logo.png", width=300)
