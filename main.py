@@ -1,39 +1,21 @@
 import yfinance as yf
 
 
-def get_stock_data(ticker_symbol, days="5d"):
+def get_stock_data(ticker_symbol, days="6mo"):
     stock = yf.Ticker(ticker_symbol)
     history = stock.history(period=days)
+
     history["Ticker"] = ticker_symbol
+    history["Daily Return"] = history["Close"].pct_change()
+
     return history
 
 
-# NVIDIA
 nvda_data = get_stock_data("NVDA")
-print("NVDA")
-print(nvda_data)
 
-# Apple
-aapl_data = get_stock_data("AAPL")
-print("\nAAPL")
-print(aapl_data)
+print(nvda_data[["Close", "Daily Return"]].head(10).to_string())
+average_daily_return = nvda_data["Daily Return"].mean()
 
-# Microsoft
-msft_data = get_stock_data("MSFT", days="1mo")
-print("\nMSFT")
-print(msft_data)
-
-
-watchlist = ["NVDA", "AAPL", "MSFT"]
-
-print("\nLatest Closing Prices")
-
-for ticker in watchlist:
-    result = get_stock_data(ticker, days="5d")
-
-    if result.empty:
-        print(f"{ticker}: No data available")
-        continue
-
-    latest_close = result["Close"].iloc[-1]
-    print(f"{ticker}: ${latest_close:.2f}")
+print(
+    f"\nAverage daily return: {average_daily_return:.4%}"
+)
