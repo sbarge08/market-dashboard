@@ -70,3 +70,26 @@ def build_volume_chart(data, ticker_symbol):
     )
 
     return fig
+
+
+def build_volatility_chart(data, ticker_symbol):
+
+    fig = go.Figure()
+
+    fig.add_trace(
+        go.Scatter(
+            x=data.index,
+            y=data["Volatility"],
+            mode="lines",
+            name="Annualized Volatility",
+        )
+    )
+
+    fig.update_layout(
+        title=f"{ticker_symbol} Volatility",
+        template="plotly_dark",
+        height=300,
+        yaxis_tickformat=".0%",
+    )
+
+    return fig

@@ -1,8 +1,12 @@
 import streamlit as st
 
 from src.data_fetcher import get_stock_data, get_stock_info
-from src.analysis import add_indicators
-from src.charts import build_price_chart, build_volume_chart
+from src.analysis import add_indicators, calculate_rsi
+from src.charts import (
+    build_price_chart,
+    build_volume_chart,
+    build_volatility_chart,
+)
 
 st.set_page_config(
     page_title="AlphaSight",
@@ -19,6 +23,7 @@ if ticker:
     # Fetch data
     data = get_stock_data(ticker)
     data = add_indicators(data)
+    data["RSI"] = calculate_rsi(data)
 
     if data.empty:
         st.error("Invalid ticker symbol.")
@@ -30,6 +35,7 @@ if ticker:
     # Risk metrics
     avg_daily_return = data["Daily Return"].mean()
     current_volatility = data["Volatility"].iloc[-1]
+    current_rsi = data["RSI"].iloc[-1]
 
     # Price information
     current_price = info.get("currentPrice", data["Close"].iloc[-1])
@@ -69,7 +75,7 @@ if ticker:
     # Risk Metrics
     st.subheader("📊 Risk Metrics")
 
-    risk_col1, risk_col2 = st.columns(2)
+    risk_col1, risk_col2, risk_col3 = st.columns(3)
 
     risk_col1.metric(
         "Volatility (Annualized)",
@@ -80,6 +86,20 @@ if ticker:
         "Average Daily Return",
         f"{avg_daily_return:.3%}"
     )
+
+    if current_rsi > 70:
+        rsi_status = "🔴 Overbought"
+    elif current_rsi < 30:
+        rsi_status = "🟢 Oversold"
+    else:
+        rsi_status = "🟡 Neutral"
+
+    risk_col3.metric(
+        "RSI (14-day)",
+        f"{current_rsi:.1f}"
+    )
+
+    risk_col3.caption(rsi_status)
 
     st.divider()
 
@@ -97,6 +117,14 @@ if ticker:
 
     st.plotly_chart(
         build_volume_chart(
+            data,
+            ticker.upper()
+        ),
+        width="stretch"
+    )
+
+    st.plotly_chart(
+        build_volatility_chart(
             data,
             ticker.upper()
         ),
