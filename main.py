@@ -1,5 +1,7 @@
 import streamlit as st
+
 from src.data_fetcher import get_stock_data, get_stock_info
+from src.analysis import add_indicators
 from src.charts import build_price_chart, build_volume_chart
 
 st.set_page_config(
@@ -14,14 +16,22 @@ ticker = st.text_input("Enter a ticker", value="NVDA")
 
 if ticker:
 
+    # Fetch data
     data = get_stock_data(ticker)
+    data = add_indicators(data)
 
     if data.empty:
         st.error("Invalid ticker symbol.")
         st.stop()
 
+    # Fetch company information
     info = get_stock_info(ticker)
 
+    # Risk metrics
+    avg_daily_return = data["Daily Return"].mean()
+    current_volatility = data["Volatility"].iloc[-1]
+
+    # Price information
     current_price = info.get("currentPrice", data["Close"].iloc[-1])
     previous_close = info.get("previousClose", data["Close"].iloc[-2])
 
@@ -33,6 +43,7 @@ if ticker:
         delta=f"{change_pct:.2f}%"
     )
 
+    # Company metrics
     col1, col2, col3, col4 = st.columns(4)
 
     col1.metric(
@@ -55,8 +66,24 @@ if ticker:
         f"${info.get('fiftyTwoWeekLow', 0):.2f} - ${info.get('fiftyTwoWeekHigh', 0):.2f}"
     )
 
+    # Risk Metrics
+    st.subheader("📊 Risk Metrics")
+
+    risk_col1, risk_col2 = st.columns(2)
+
+    risk_col1.metric(
+        "Volatility (Annualized)",
+        f"{current_volatility:.1%}"
+    )
+
+    risk_col2.metric(
+        "Average Daily Return",
+        f"{avg_daily_return:.3%}"
+    )
+
     st.divider()
 
+    # Charts
     show_ma = st.checkbox("Show Moving Averages", value=True)
 
     st.plotly_chart(
@@ -65,15 +92,17 @@ if ticker:
             ticker.upper(),
             show_ma
         ),
-        use_container_width=True
+        width="stretch"
     )
+
     st.plotly_chart(
         build_volume_chart(
             data,
             ticker.upper()
         ),
-        use_container_width=True
+        width="stretch"
     )
 
+    # Raw data
     with st.expander("View Raw Data"):
-        st.dataframe(data, use_container_width=True)
+        st.dataframe(data, width="stretch")
