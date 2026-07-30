@@ -11,45 +11,80 @@ from src.charts import (
 st.set_page_config(
     page_title="AlphaSight",
     page_icon="📈",
-    layout="wide"
+    layout="wide",
 )
 
 st.title("📈 AlphaSight")
 
-ticker = st.text_input("Enter a ticker", value="NVDA")
+ticker = st.text_input(
+    "Enter a ticker",
+    value="NVDA"
+).strip().upper()
 
 if ticker:
 
-    # Fetch data
-    data = get_stock_data(ticker)
-    data = add_indicators(data)
-    data["RSI"] = calculate_rsi(data)
+    with st.spinner("Fetching market data..."):
 
-    if data.empty:
-        st.error("Invalid ticker symbol.")
-        st.stop()
+        try:
+            # Fetch stock data
+            data = get_stock_data(ticker)
+            data = add_indicators(data)
+            data["RSI"] = calculate_rsi(data)
 
-    # Fetch company information
-    info = get_stock_info(ticker)
+            if data.empty:
+                st.error("❌ No data found for this ticker.")
+                st.stop()
 
-    # Risk metrics
+            # Fetch company information
+            info = get_stock_info(ticker)
+
+        except ValueError:
+            st.error("❌ Invalid ticker symbol.")
+            st.stop()
+
+        except Exception:
+            st.error(
+                "❌ Unable to retrieve stock data. Please check the ticker symbol or try again later."
+            )
+            st.stop()
+
+    # -------------------------
+    # Risk Metrics
+    # -------------------------
+
     avg_daily_return = data["Daily Return"].mean()
     current_volatility = data["Volatility"].iloc[-1]
     current_rsi = data["RSI"].iloc[-1]
 
-    # Price information
-    current_price = info.get("currentPrice", data["Close"].iloc[-1])
-    previous_close = info.get("previousClose", data["Close"].iloc[-2])
+    # -------------------------
+    # Price Information
+    # -------------------------
 
-    change_pct = ((current_price - previous_close) / previous_close) * 100
+    current_price = info.get(
+        "currentPrice",
+        data["Close"].iloc[-1]
+    )
+
+    previous_close = info.get(
+        "previousClose",
+        data["Close"].iloc[-2]
+    )
+
+    change_pct = (
+        (current_price - previous_close)
+        / previous_close
+    ) * 100
 
     st.metric(
-        label=ticker.upper(),
+        label=ticker,
         value=f"${current_price:.2f}",
         delta=f"{change_pct:.2f}%"
     )
 
-    # Company metrics
+    # -------------------------
+    # Company Metrics
+    # -------------------------
+
     col1, col2, col3, col4 = st.columns(4)
 
     col1.metric(
@@ -72,7 +107,10 @@ if ticker:
         f"${info.get('fiftyTwoWeekLow', 0):.2f} - ${info.get('fiftyTwoWeekHigh', 0):.2f}"
     )
 
-    # Risk Metrics
+    # -------------------------
+    # Risk Metrics Display
+    # -------------------------
+
     st.subheader("📊 Risk Metrics")
 
     risk_col1, risk_col2, risk_col3 = st.columns(3)
@@ -103,34 +141,46 @@ if ticker:
 
     st.divider()
 
+    # -------------------------
     # Charts
-    show_ma = st.checkbox("Show Moving Averages", value=True)
+    # -------------------------
+
+    show_ma = st.checkbox(
+        "Show Moving Averages",
+        value=True
+    )
 
     st.plotly_chart(
         build_price_chart(
             data,
-            ticker.upper(),
-            show_ma
+            ticker,
+            show_ma,
         ),
-        width="stretch"
+        width="stretch",
     )
 
     st.plotly_chart(
         build_volume_chart(
             data,
-            ticker.upper()
+            ticker,
         ),
-        width="stretch"
+        width="stretch",
     )
 
     st.plotly_chart(
         build_volatility_chart(
             data,
-            ticker.upper()
+            ticker,
         ),
-        width="stretch"
+        width="stretch",
     )
 
-    # Raw data
+    # -------------------------
+    # Raw Data
+    # -------------------------
+
     with st.expander("View Raw Data"):
-        st.dataframe(data, width="stretch")
+        st.dataframe(
+            data,
+            width="stretch",
+        )
