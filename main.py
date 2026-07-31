@@ -1,6 +1,10 @@
 import streamlit as st
 
-from src.data_fetcher import get_stock_data, get_stock_info
+from src.data_fetcher import (
+    get_stock_data,
+    get_stock_info,
+    get_news,
+)
 from src.analysis import add_indicators, calculate_rsi
 from src.charts import (
     build_price_chart,
@@ -179,7 +183,27 @@ if ticker:
     # Raw Data
     # -------------------------
 
-    with st.expander("View Raw Data"):
+    st.subheader("📰 Recent News")
+
+try:
+    articles = get_news(ticker)
+
+except Exception:
+    articles = []
+
+if not articles:
+
+    st.caption("No recent news available right now.")
+
+else:
+
+    for article in articles:
+
+        st.markdown(
+            f"**[{article['title']}]({article['link']})**"
+        )
+
+        st.caption(article["publisher"])
         st.dataframe(
             data,
             width="stretch",
