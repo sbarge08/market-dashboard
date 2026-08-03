@@ -11,27 +11,65 @@ from src.charts import (
     build_volume_chart,
     build_volatility_chart,
 )
-
+from src.company import display_company_profile
 st.set_page_config(
     page_title="AlphaSight",
     page_icon="📈",
     layout="wide",
 )
 
-st.title("📈 AlphaSight")
+st.markdown(
+    """
+# 📈 AlphaSight
 
-ticker = st.text_input(
-    "Enter a ticker",
-    value="NVDA"
+##### Professional Market Intelligence Dashboard
+"""
+)
+
+st.divider()
+
+st.sidebar.title("AlphaSight")
+st.sidebar.subheader("⭐ Watchlist")
+
+watchlist = [
+    "NVDA",
+    "AAPL",
+    "MSFT",
+    "AMZN",
+    "TSLA",
+]
+selected_stock = st.sidebar.selectbox(
+    "Choose from Watchlist",
+    watchlist
+)
+
+ticker = st.sidebar.text_input(
+    "Or Enter a Ticker",
+    value=selected_stock
 ).strip().upper()
-
+time_period = st.sidebar.selectbox(
+    "Time Range",
+    [
+        "1mo",
+        "3mo",
+        "6mo",
+        "1y",
+        "2y",
+        "5y",
+        "max",
+    ],
+    index=2,
+)
 if ticker:
 
     with st.spinner("Fetching market data..."):
 
         try:
             # Fetch stock data
-            data = get_stock_data(ticker)
+            data = get_stock_data(
+    ticker,
+    period=time_period,
+)
             data = add_indicators(data)
             data["RSI"] = calculate_rsi(data)
 
@@ -41,10 +79,11 @@ if ticker:
 
             # Fetch company information
             info = get_stock_info(ticker)
-
+            
+           
         except ValueError:
-            st.error("❌ Invalid ticker symbol.")
-            st.stop()
+              st.error("❌ Invalid ticker symbol.")
+              st.stop()
 
         except Exception:
             st.error(
@@ -78,42 +117,100 @@ if ticker:
         (current_price - previous_close)
         / previous_close
     ) * 100
+market_trend = "🟢 Bullish"
 
-    st.metric(
-        label=ticker,
-        value=f"${current_price:.2f}",
-        delta=f"{change_pct:.2f}%"
-    )
+if change_pct < 0:
+    market_trend = "🔴 Bearish"
+with st.container(border=True):
 
-    # -------------------------
-    # Company Metrics
-    # -------------------------
+    left, right = st.columns([4, 1])
 
-    col1, col2, col3, col4 = st.columns(4)
+    with left:
 
-    col1.metric(
+        st.markdown(f"# {info.get('longName', ticker)}")
+
+        st.caption(
+            f"{ticker} • "
+            f"{info.get('sector', 'Unknown Sector')} • "
+            f"{info.get('industry', 'Unknown Industry')}"
+        )
+
+    with right:
+
+        st.metric(
+            "Current Price",
+            f"${current_price:.2f}",
+            f"{change_pct:.2f}%"
+        ) 
+
+  # -------------------------
+# Company Metrics
+# -------------------------
+
+with st.container(border=True):
+
+    left_col, right_col = st.columns([1, 2])
+
+    with left_col:
+        display_company_profile(info)
+
+    with right_col:
+     st.subheader("📊 Market Metrics")
+     top_row = st.columns(2)
+    bottom_row = st.columns(2)
+    top_row[0].metric(
         "Market Cap",
         f"${info.get('marketCap', 0) / 1e12:.2f} T"
     )
 
-    col2.metric(
+    top_row[1].metric(
         "P/E Ratio",
         str(info.get("trailingPE", "N/A"))
     )
 
-    col3.metric(
+    bottom_row[0].metric(
         "Volume",
         f"{info.get('volume', 0) / 1e6:.1f} M"
     )
 
-    col4.metric(
+    bottom_row[1].metric(
         "52 Week Range",
         f"${info.get('fiftyTwoWeekLow', 0):.2f} - ${info.get('fiftyTwoWeekHigh', 0):.2f}"
     )
-
     # -------------------------
     # Risk Metrics Display
     # -------------------------
+with st.container(border=True):
+
+    st.subheader("📊 Market Summary")
+
+    summary_col1, summary_col2 = st.columns(2)
+
+    summary_col1.metric(
+        "Current Price",
+        f"${current_price:.2f}",
+        f"{change_pct:.2f}%"
+    )
+
+    summary_col2.metric(
+        "Trend",
+        market_trend
+    )
+
+    summary_col3, summary_col4 = st.columns(2)
+
+    summary_col3.metric(
+        "RSI",
+        f"{current_rsi:.1f}"
+    )
+
+    summary_col4.metric(
+        "Volatility",
+        f"{current_volatility:.1%}"
+    )
+
+st.divider()
+with st.container(border=True):
 
     st.subheader("📊 Risk Metrics")
 
@@ -148,7 +245,7 @@ if ticker:
     # -------------------------
     # Charts
     # -------------------------
-
+with st.container(border=True):
     show_ma = st.checkbox(
         "Show Moving Averages",
         value=True
@@ -197,14 +294,9 @@ if not articles:
 
 else:
 
-    for article in articles:
+   for article in articles:
 
-        st.markdown(
-            f"**[{article['title']}]({article['link']})**"
-        )
-
-        st.caption(article["publisher"])
-        st.dataframe(
-            data,
-            width="stretch",
-        )
+    st.markdown(
+        f"**[{article['title']}]({article['link']})**  \n"
+        f"*Source: {article['publisher']}*"
+    )
